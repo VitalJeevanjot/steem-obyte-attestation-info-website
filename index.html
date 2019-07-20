@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head><title>Steem attestation checker</title>
+<script src="https://cdn.jsdelivr.net/npm/obyte"></script>
+<!-- UIkit CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.1.6/css/uikit.min.css" />
+</head>
+<body>
+<div class="uk-container">
+<h1 class="uk-heading-line uk-text-center"><span>Steem attestation in obyte</span></h1>
+</div>
+<div class="uk-container uk-margin-top uk-width-expand">
+    <div class="uk-margin">
+        <input id="obyte_address" class="uk-input" type="text" placeholder="Enter Obyte (Formely known as Byteball) Address">
+    </div>
+    <div class="uk-position-center-out">
+        <button class="uk-button uk-light uk-background-secondary" id="searchAddress">Search</button>
+        <progress id="js-progressbar" class="uk-progress" value="0" max="100"></progress>
+    </div>
+</div>
+<!-- Modal -->
+<div id="modal-close-default" uk-modal>
+    <div class="uk-modal-dialog uk-modal-body">
+        <button class="uk-modal-close-default" type="button" uk-close></button>
+        <h2 class="uk-modal-title">Unit Received On:</h2>
+        <p id="dateOn"></p>
+        <button class="uk-button uk-light uk-background-secondary" id="getAddressOnExplorer">Explorer</button>
+    </div>
+</div>
+<!-- UIkit JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.1.6/js/uikit.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.1.6/js/uikit-icons.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</body>
+</html>
+
+<script>
+$(document).ready(() => {
+})
+$('#searchAddress').click(async () => {
+    const params = {
+  address: $('#obyte_address').val()
+};
+var bar = document.getElementById('js-progressbar');
+
+var animate = setInterval(function () {
+
+    bar.value += 10;
+
+    if (bar.value >= bar.max) {
+        clearInterval(animate);
+    }
+
+}, 1000);
+const client = new obyte.Client('wss://obyte.org/bb');
+  await client.api.getAttestations(params, function(err, result) {
+    if(err) {
+        UIkit.notification({
+                        message: err,
+                        status: 'primary',
+                        pos: 'top-right',
+                        timeout: 5000
+        });
+        bar.value=100
+        return;
+    }
+    // console.log(result, err);
+    for (let index = 0; index < result.length; index++) {
+        if(result[index].attestor_address === 'JEDZYC2HMGDBIDQKG3XSTXUSHMCBK725') {
+            let unit = result[index].unit
+            client.api.getJoint(unit, function(err, result) {
+                if(err) {
+                    UIkit.notification({
+                        message: err,
+                        status: 'primary',
+                        pos: 'top-right',
+                        timeout: 5000
+                    });
+                    bar.value=100
+                    return;
+                }
+                // console.log(result);
+                var date = new Date(result.joint.unit.timestamp*1000);
+                $('#dateOn').text(date)
+                $('#getAddressOnExplorer').click(() => {
+                    let url = 'https://explorer.obyte.org/#' + result.joint.unit.unit
+                    let win = window.open(url, '_blank');
+                    win.focus();
+                })
+                // console.log(date)
+                bar.value = 100
+                });
+                break;
+        }
+    }
+    UIkit.modal('#modal-close-default').show();
+});
+return false
+})
+</script>
